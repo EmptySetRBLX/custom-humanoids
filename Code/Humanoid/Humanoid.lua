@@ -19,108 +19,110 @@ Class.new = function(char, primaryPart, fakedChar)
 	self:InitProperties()
 	self:InitFunctions()
 	self:InitCustomEvents()
-	self.WalkToPoint = Vector3.new(-53, 1, -92)--self.PrimaryPart.CFrame.p
+	self.WalkToPoint = nil
+	self.Move = Vector3.new(0,0,0)
+	self.FrontVector = Vector3.new(1,0,0)
 	return self
 end
 
 function Class:IsA(type)
 	return type == "Humanoid" or type == "Instance"
-	--return true
 end
 
 function Class:AttemptMovement(step)
-	local distance = (Vector2.new(self.WalkToPoint.X, self.WalkToPoint.Z) - Vector2.new(self.PrimaryPart.Position.X, self.PrimaryPart.Position.Z)).magnitude
-	local Vec2Unit = (Vector2.new(self.WalkToPoint.X, self.WalkToPoint.Z) - Vector2.new(self.PrimaryPart.Position.X, self.PrimaryPart.Position.Z)).unit
-	
-	if distance<0.1 then
-		self.WalkToPoint = nil
-		self.MovedToFinished:Fire()
-		return
-	end
-	print(self.WalkToPoint)
 	local function calcAngleBetween(a,b)
 		return math.deg(math.acos(a.unit:Dot(b.unit)))
-	end
-	
-	local distanceToMove = step*self.WalkSpeed
-	local wallCheckRay = Ray.new(self.PrimaryPart.Position, Vector3.new(Vec2Unit.X, 0, Vec2Unit.Y))
-	local wallHit, __, surfaceNorm = game.Workspace:FindPartOnRay(wallCheckRay, self.Character)
-	
-	if wallHit then
-		if wallHit.CanCollide == false then
-			local partsHit = {self.Character, wallHit}
-			while true do
-				local newPHit = game.Workspace:FindPartOnRayWithIgnoreList(wallCheckRay, partsHit)
-				if newPHit then
-					if newPHit.CanCollide == false then
-						partsHit[#partsHit+1] = newPHit
-					else
-						if(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm) > self.MaxSlopeAngle) then
-							return
-						else
-							break
-						end
-					end
-				else
-					break
+	end	
+	if self.Move ~= Vector3.new() then
+		self.WalkToPoint = nil
+		self.FrontVector = self.Move
+		local cPos = self.PrimaryPart.CFrame.p
+		local colRay = Ray.new(cPos, self.Move*self.WalkSpeed*step)
+		local iList = {self.Character}
+		local partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+		while partHit do
+			if partHit.CanCollide == true then
+				if(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm) > self.MaxSlopeAngle) then
+					return
 				end
 			end
-		else
-			if(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm) > self.MaxSlopeAngle) then
-				return
-			end
+			iList[#iList+1] = partHit
+			partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
 		end
-	end
-	self.PrimaryPart.CFrame = self.PrimaryPart.CFrame + (Vector3.new(Vec2Unit.X, 0, Vec2Unit.Y)*distanceToMove)
-	local downRay = Ray.new(self.PrimaryPart.Position, Vector3.new(0,-99.1*step,0)*3)
-	local ignoreL = {self.Character}
-	local partHit, posHit = game.Workspace:FindPartOnRayWithIgnoreList(downRay, ignoreL)
-	while partHit and partHit.CanCollide == false do
-		ignoreL[#ignoreL + 1] = partHit
-		partHit, posHit = game.Workspace:FindPartOnRayWithIgnoreList(downRay, ignoreL)
-	end
-	local attemptToGo = self.PrimaryPart.CFrame - Vector3.new(0, 99.1*step,0)
-	if posHit then
-		local col = (posHit.Y + self.Height)
-		if attemptToGo.p.Y > col then
-			self.PrimaryPart.CFrame = self.PrimaryPart.CFrame - Vector3.new(0, 99.1*step,0)
-		else
-			self.PrimaryPart.CFrame = self.PrimaryPart.CFrame + Vector3.new(0, (col - self.PrimaryPart.Position.Y), 0)
-			local forwardVec = (self.PrimaryPart.CFrame.p - self.WalkToPoint).unit
-			local upVec = Vector3.new(0,1,0)
-			local rightVec = upVec:Cross(forwardVec)
-			local pos = self.PrimaryPart.CFrame.p
-			self.PrimaryPart.CFrame = CFrame.new(pos.X, pos.Y, pos.Z, 
-												 rightVec.X, upVec.X, forwardVec.X,
-												 rightVec.Y, upVec.Y, forwardVec.Y,
-												 rightVec.Z, upVec.Z, forwardVec.Z)
-		end
-		--self.PrimaryPart.CFrame = self.PrimaryPart.CFrame + Vector3.new(0, (posHit.Y + self.Height - self.PrimaryPart.Position.Y), 0)
+		self.PrimaryPart.CFrame = self.PrimaryPart.CFrame + (self.Move*step*self.WalkSpeed)
+	elseif self.WalkToPoint then
+		
 	else
-		self.PrimaryPart.CFrame = self.PrimaryPart.CFrame - Vector3.new(0, 99.1*step,0)
+		assert(false, "AttemptMovement() somehow called with no valid move direction")
+	end
+end
+
+function Class:Fall(step)
+	local cPos = self.PrimaryPart.CFrame.p
+	local downRay = Ray.new(cPos, Vector3.new(0,-5,0))
+	local iList = {self.Character}
+	local partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(downRay, iList)
+	while partHit and partHit.CanCollide == false do
+		iList[#iList+1] = partHit
+		partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(downRay, iList)
 	end
 	
-	--print("Y SET TO: " .. self.PrimaryPart.Position.Y)
+	if partHit then
+		local minY = posHit.Y + self.Height 
+		local attemptY = cPos.Y - (192.8*step*.3)
+		local goY = attemptY
+		if minY > goY then
+			goY = minY
+		end
+		
+		local newPos = Vector3.new(cPos.X, goY, cPos.Z)
+		local backVec = -self.FrontVector
+		local upVec = Vector3.new(0,1,0)
+		local rightVec = backVec:Cross(upVec)
+		self.PrimaryPart.CFrame = CFrame.new(newPos.X, goY, newPos.Z, 
+			-rightVec.X, 0, backVec.X,
+			-rightVec.Y, 1, backVec.Y,
+			-rightVec.Z, 0, backVec.Z)
+	else
+		local newPos = Vector3.new(cPos.X, (cPos.Y - (192.8*step*.3)), cPos.Z)
+		local backVec = -self.FrontVector
+		local upVec = Vector3.new(0,1,0)
+		local rightVec = backVec:Cross(upVec)
+		if newPos.Y < -100 then
+			newPos = Vector3.new(cPos.X, 5, cPos.Z)
+		end
+		self.PrimaryPart.CFrame = CFrame.new(newPos.X, newPos.Y, newPos.Z, 
+			-rightVec.X, 0, backVec.X,
+			-rightVec.Y, 1, backVec.Y,
+			-rightVec.Z, 0, backVec.Z)
+	end
 end
 
 function Class:HeartBeat(step)
 	assert(self.PrimaryPart, "No primary part defined, humanoid likely dead")
-	if self.WalkToPoint ~= nil then
+	self.PrimaryPart.Velocity = Vector3.new()
+	if self.Move ~= Vector3.new() or self.WalkToPoint ~= nil then
 		self:AttemptMovement(step)
+	end
+	self:Fall(step)
+end
+
+function Class:SetMove(dir)
+	assert(typeof(dir) == "Vector3", "Move() expects a Vector3 value")
+	if dir == Vector3.new() then
+		self.Move = Vector3.new()
+	else
+		self.Move = dir.unit
 	end
 end
 
-function Class:Move(dir)
-	self.WalkToPoint = self.PrimaryPart.CFrame.p+dir
-end
-
 function Class:MoveTo(point)
-	assert(typeof(point) == "Vector3", "Move to expects a Vector3 value")
+	assert(typeof(point) == "Vector3", "MoveTo() expects a Vector3 value")
 	self.WalkToPoint = point
 end
 
 function Class:TakeDamage(damage)
-	assert(typeof(damage) == "number", "Take damage expects a number value")
+	assert(typeof(damage) == "number", "TakeDamage() expects a number value")
 	self.Health = self.Health - damage
 	if self.Health > self.MaxHealth then
 		self.Health = self.MaxHealth

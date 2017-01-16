@@ -35,10 +35,11 @@ end
 
 function Class:Move(walkDir, relToCamera)
 	if walkDir.X == 0 and walkDir.Z == 0 then
+		self.Character.Humanoid:SetMove(Vector3.new(0))
 		return
 	end
 	if relToCamera == false then
-		self.Character.Humanoid:Move(walkDir)
+		self.Character.Humanoid:SetMove(walkDir)
 	else
 		local camCF = game.Workspace.Camera.CFrame
 		local right = camCF.rightVector
@@ -48,8 +49,7 @@ function Class:Move(walkDir, relToCamera)
 			right.X, up.X, back.X,
 			right.Y, up.Y, back.Y,
 			right.Z, up.Z, back.Z)
-		print(adjusted:vectorToWorldSpace(walkDir))
-		self.Character.Humanoid:Move(adjusted:vectorToWorldSpace(walkDir))
+		self.Character.Humanoid:SetMove(adjusted:vectorToWorldSpace(walkDir))
 	end
 end
 
