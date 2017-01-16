@@ -49,4 +49,4 @@ Temporary Items
 # StudioSinc
 *.js
 *.bat
-/node_modules
+Code/node_modules
