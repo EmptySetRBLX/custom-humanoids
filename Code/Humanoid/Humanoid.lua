@@ -22,6 +22,7 @@ Class.new = function(char, primaryPart, fakedChar)
 	self.WalkToPoint = nil
 	self.Move = Vector3.new(0,0,0)
 	self.FrontVector = Vector3.new(1,0,0)
+	self.State = "Idle"
 	return self
 end
 
@@ -34,10 +35,11 @@ function Class:AttemptMovement(step)
 		return math.deg(math.acos(a.unit:Dot(b.unit)))
 	end	
 	if self.Move ~= Vector3.new() then
+		self.State = "Running"
 		self.WalkToPoint = nil
 		self.FrontVector = self.Move
 		local cPos = self.PrimaryPart.CFrame.p
-		local colRay = Ray.new(cPos, self.Move*self.WalkSpeed*step)
+		local colRay = Ray.new(cPos, self.Move*self.WalkSpeed*step*2)
 		local iList = {self.Character}
 		local partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
 		while partHit do
@@ -73,6 +75,8 @@ function Class:Fall(step)
 		local goY = attemptY
 		if minY > goY then
 			goY = minY
+		else
+			self.State = "Falling"
 		end
 		
 		local newPos = Vector3.new(cPos.X, goY, cPos.Z)
@@ -84,6 +88,7 @@ function Class:Fall(step)
 			-rightVec.Y, 1, backVec.Y,
 			-rightVec.Z, 0, backVec.Z)
 	else
+		self.State = "Falling"
 		local newPos = Vector3.new(cPos.X, (cPos.Y - (192.8*step*.3)), cPos.Z)
 		local backVec = -self.FrontVector
 		local upVec = Vector3.new(0,1,0)
@@ -101,10 +106,21 @@ end
 function Class:HeartBeat(step)
 	assert(self.PrimaryPart, "No primary part defined, humanoid likely dead")
 	self.PrimaryPart.Velocity = Vector3.new()
+	local oldState = self.State
+	self.State = "Idle"
 	if self.Move ~= Vector3.new() or self.WalkToPoint ~= nil then
 		self:AttemptMovement(step)
 	end
 	self:Fall(step)
+	if oldState ~= self.State then
+		if self.State == "Running" then
+			self.Running:Fire(self.WalkSpeed)
+		elseif self.State == "Falling" then
+			self.FreeFalling:Fire()
+		elseif self.State == "Idle" then
+			self.Running:Fire(0)
+		end
+	end
 end
 
 function Class:SetMove(dir)
@@ -138,8 +154,14 @@ function Class:TakeDamage(damage)
 end
 
 function Class:InitFunctions()
-	self.GetPlayingAnimationTracks = self.AnimationCont.GetPlayingAnimationTracks
-	self.LoadAnimation = self.AnimationCont.LoadAnimation
+end
+
+function Class:GetPlayingAnimationTracks(...)
+	return self.AnimationCont:GetPlayingAnimationTracks(...)
+end
+
+function Class:LoadAnimation(...)
+	return self.AnimationCont:LoadAnimation(...)
 end
 
 function Class:InitProperties()

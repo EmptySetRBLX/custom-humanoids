@@ -8,9 +8,11 @@ setmetatable(Class, {
 	end,
 })
 
-Class.new = function(char)
+Class.new = function(char, player)
 	local self = {}
 	self.Character = char
+	self.PlayerClass = player
+	self.RealPlayer = self.PlayerClass.RealPlayer
 	setmetatable(self, {
 		__index = function(tab, index)
 			if Class[index] then
@@ -20,6 +22,11 @@ Class.new = function(char)
 		end
 	})
 	self.Humanoid = self.Classes["Humanoid"](char, char:WaitForChild("HumanoidRootPart"), self)
+	
+	if self.RealPlayer.PlayerGui:FindFirstChild("Animate") then
+		self.RealPlayer.PlayerGui:FindFirstChild("Animate"):Destroy()
+	end
+	script:WaitForChild("Animate"):Clone().Parent = self.RealPlayer.PlayerGui
 	return self
 end
 
@@ -48,5 +55,6 @@ function Class:FindFirstChild(child)
 	return self.Character:FindFirstChild(child)
 end
 
+Class.findFirstChild = Class.FindFirstChild
 
 return Class

@@ -71,10 +71,10 @@ function Class:SetupEvents()
 	self.CharacterRemoving = self.Classes["Event"].new()
 	self.SpawningEvent.OnClientEvent:connect(function(data)
 		if data.Type == "Spawn" then
-			self.Character = self.Classes["Character"].new(data.Char)
+			self.Character = self.Classes["Character"].new(data.Char, self)
 			local cam = game.Workspace.Camera
 			cam.CameraSubject = self.Character:WaitForChild("Head")
-			cam.CameraType = Enum.CameraType.Track
+			cam.CameraType = Enum.CameraType.Custom
 			self.CharacterAdded:Fire(data.Char)
 		elseif data.Type == "Despawn" then
 			self.CharacterRemoving:Fire(data.Char)
