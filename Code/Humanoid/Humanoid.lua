@@ -14,8 +14,8 @@ Class.new = function(char, primaryPart, fakedChar)
 	self.PrimaryPart = primaryPart
 	self.Torso = primaryPart
 	self.Parent = fakedChar
-	self.AnimationCont = Instance.new("AnimationController")
-	self.AnimationCont.Parent = self.Character
+	self.AnimationCont = self.Character:WaitForChild("AnimationController")--Instance.new("AnimationController")
+	--self.AnimationCont.Parent = self.Character
 	self:InitProperties()
 	self:InitFunctions()
 	self:InitCustomEvents()
@@ -160,8 +160,9 @@ function Class:GetPlayingAnimationTracks(...)
 	return self.AnimationCont:GetPlayingAnimationTracks(...)
 end
 
-function Class:LoadAnimation(...)
-	return self.AnimationCont:LoadAnimation(...)
+function Class:LoadAnimation(anim)
+	local animTrack = self.AnimationCont:LoadAnimation(anim)
+	return self.Classes.AnimationTrack.new(animTrack)
 end
 
 function Class:InitProperties()
