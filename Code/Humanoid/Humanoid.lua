@@ -51,6 +51,22 @@ function Class:AttemptMovement(step)
 			iList[#iList+1] = partHit
 			partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
 		end
+		
+		cPos = self.PrimaryPart.CFrame.p - Vector3.new(0, self.Height-0.1, 0)
+		colRay = Ray.new(cPos, self.Move*self.WalkSpeed*step*2)
+		iList = {self.Character}
+		partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+		while partHit do
+			if partHit.CanCollide == true then
+				if(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm) > self.MaxSlopeAngle) then
+					print(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm))
+					return
+				end
+			end
+			iList[#iList+1] = partHit
+			partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+		end
+		
 		self.PrimaryPart.CFrame = self.PrimaryPart.CFrame + (self.Move*step*self.WalkSpeed)
 	elseif self.WalkToPoint then
 		
@@ -171,7 +187,7 @@ function Class:InitProperties()
 	self.Jump = false
 	self.JumpPower = 50
 	self.WalkSpeed = 16
-	self.MaxSlopeAngle = 89
+	self.MaxSlopeAngle = 45
 	self.Height = 3
 	self.WalkToPoint = nil
 end
