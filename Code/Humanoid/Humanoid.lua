@@ -30,16 +30,45 @@ function Class:IsA(type)
 	return type == "Humanoid" or type == "Instance"
 end
 
+Class.calcAngleBetween = function(a,b)
+	return math.deg(math.acos(a.unit:Dot(b.unit)))
+end
+
+function Class:getProjectedPosition(cf)
+	local colRay = Ray.new(cf.p, Vector3.new(0,-self.Height*4, 0))
+	local iList = {self.Character}
+	local partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+	while partHit do
+		if partHit.CanCollide == true then
+			return posHit+Vector3.new(0, self.Height, 0)
+		end
+		iList[#iList+1] = partHit
+		partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+	end
+end
+
 function Class:AttemptMovement(step)
-	local function calcAngleBetween(a,b)
-		return math.deg(math.acos(a.unit:Dot(b.unit)))
-	end	
-	if self.Move ~= Vector3.new() then
-		self.State = "Running"
+	local calcAngleBetween = self.calcAngleBetween
+	local movementVec = self.Move or Vector3.new()
+	if movementVec == Vector3.new() then
+		print("movementVec being set to MoveTo")
+		
+		movementVec = (self.WalkToPoint - self.PrimaryPart.CFrame.p)
+		movementVec = Vector3.new(movementVec.X, 0, movementVec.Z)
+		if (movementVec).magnitude < 0.2 then
+			self.WalkToPoint = nil
+			return
+		end
+		movementVec = movementVec.unit
+	else
 		self.WalkToPoint = nil
-		self.FrontVector = self.Move
-		local cPos = self.PrimaryPart.CFrame.p
-		local colRay = Ray.new(cPos, self.Move*self.WalkSpeed*step*2)
+	end
+	if movementVec ~= Vector3.new() then
+		self.State = "Running"
+		self.FrontVector = movementVec
+		
+		local cPos = self.PrimaryPart.CFrame.p --foward check from torso
+		local colRay = Ray.new(cPos, movementVec*self.WalkSpeed*step*2)
 		local iList = {self.Character}
 		local partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
 		while partHit do
@@ -52,14 +81,13 @@ function Class:AttemptMovement(step)
 			partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
 		end
 		
-		cPos = self.PrimaryPart.CFrame.p - Vector3.new(0, self.Height-0.1, 0)
-		colRay = Ray.new(cPos, self.Move*self.WalkSpeed*step*2)
+		cPos = self.PrimaryPart.CFrame.p - Vector3.new(0, self.Height-1.5, 0) --foward check from feet
+		colRay = Ray.new(cPos, movementVec*self.WalkSpeed*step*2)
 		iList = {self.Character}
 		partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
 		while partHit do
 			if partHit.CanCollide == true then
 				if(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm) > self.MaxSlopeAngle) then
-					print(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm))
 					return
 				end
 			end
@@ -67,9 +95,49 @@ function Class:AttemptMovement(step)
 			partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
 		end
 		
-		self.PrimaryPart.CFrame = self.PrimaryPart.CFrame + (self.Move*step*self.WalkSpeed)
-	elseif self.WalkToPoint then
+		--[[cPos = self.PrimaryPart.CFrame.p + Vector3.new(0, self.Height+0.1, 0) --foward check from head
+		colRay = Ray.new(cPos, self.Move*self.WalkSpeed*step*2)
+		iList = {self.Character}
+		partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+		while partHit do
+			if partHit.CanCollide == true then
+				if(calcAngleBetween(Vector3.new(0,1,0), surfaceNorm) > self.MaxSlopeAngle) then
+					return
+				end
+			end
+			iList[#iList+1] = partHit
+			partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+		end--]]
+
 		
+		local attemptCF = self.PrimaryPart.CFrame + (movementVec*step*self.WalkSpeed)
+		local projectedHit = self:getProjectedPosition(attemptCF)
+		if projectedHit then
+			colRay = Ray.new(projectedHit, Vector3.new(0, self.Height, 0)) --upwards check
+			iList = {self.Character}
+			partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+			while partHit do
+				if partHit.CanCollide == true then
+					local p1 = Instance.new("Part")
+					p1.Anchored = true
+					p1.Size = Vector3.new(0.2,0.2,0.2)
+					p1.CanCollide = false
+					local p2 = p1:Clone()
+					p1.CFrame = CFrame.new(projectedHit)
+					p2.CFrame = CFrame.new(posHit)
+					p1.Parent = game.Workspace
+					--p2.Parent = game.Workspace
+					game:GetService("Debris"):AddItem(p1,3)
+					--game:GetService("Debris"):AddItem(p2,3)
+					return
+				end
+				iList[#iList+1] = partHit
+				partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(colRay, iList)
+			end
+		end
+		
+		
+		self.PrimaryPart.CFrame = attemptCF
 	else
 		assert(false, "AttemptMovement() somehow called with no valid move direction")
 	end
@@ -77,7 +145,7 @@ end
 
 function Class:Fall(step)
 	local cPos = self.PrimaryPart.CFrame.p
-	local downRay = Ray.new(cPos, Vector3.new(0,-5,0))
+	local downRay = Ray.new(cPos, Vector3.new(0,-self.Height*2,0))
 	local iList = {self.Character}
 	local partHit, posHit, surfaceNorm = game.Workspace:FindPartOnRayWithIgnoreList(downRay, iList)
 	while partHit and partHit.CanCollide == false do
@@ -136,6 +204,10 @@ function Class:HeartBeat(step)
 		elseif self.State == "Idle" then
 			self.Running:Fire(0)
 		end
+	end
+	if self.Jump then
+		print("JUMP")
+		self.Jump = false
 	end
 end
 
