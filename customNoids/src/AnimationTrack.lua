@@ -6,12 +6,12 @@
 -- @type animationTrack
 -- @field #table Properties Internal table used so _newindex fires in order to replicate property changes
 -- @field #RemoteEvent rEvent 
--- {Type = "LoadAnimation", ID = AnimationId, Name = AnimationName}              
--- {Type = "SetProperty", ID = AnimationId, Property = PropertyName, Value = value}                      
--- {Type = "PlayAnimation", ID = AnimationId, Fadetime = fadeTime, Weight = weight, Speed = speed}                 
--- {Type = "StopAnimation", ID = AnimationId, FadeTime = fadeTime}                    
--- {Type = "AdjustSpeed", ID = AnimationId, Value = speed}            
--- {Type = "AdjustWeight", ID = AnimationId,	Weight = weight, fadeTime = FadeTime}
+-- {Type = "LoadAnimation", ID = AnimationId, Name = AnimationName, AnimController = AnimController}              
+-- {Type = "SetProperty", ID = AnimationId, Property = PropertyName, Value = value, AnimController = AnimController}                      
+-- {Type = "PlayAnimation", ID = AnimationId, Fadetime = fadeTime, Weight = weight, Speed = speed, AnimController = AnimController}                 
+-- {Type = "StopAnimation", ID = AnimationId, FadeTime = fadeTime, AnimController = AnimController}                    
+-- {Type = "AdjustSpeed", ID = AnimationId, Value = speed, AnimController = AnimController}            
+-- {Type = "AdjustWeight", ID = AnimationId,	Weight = weight, fadeTime = FadeTime, AnimController = AnimController}
 local Class = {}
 
 Class.__index = Class
@@ -22,17 +22,19 @@ setmetatable(Class, {
 	end,
 })
 
-Class.new = function(realTrack)
+Class.new = function(realCont, realTrack)
 	local self = {}
 	self.Properties = {}
+	self.realCont = realCont
 	self.realTrack = realTrack
 	
 	local args = {
 			Type = "LoadAnimation",
 			ID = self.realTrack.Animation.AnimationId,
-			Name = self.realTrack.Animation.Name
+			Name = self.realTrack.Animation.Name,
+			AnimController = self.realCont
 	}
-	self.rEvent = game.ReplicatedStorage:WaitForChild("Spawning")
+	self.rEvent = game.ReplicatedStorage:WaitForChild("AnimationReplicator")
 	self.rEvent:FireServer(args)
 	
 	setmetatable(self, {
@@ -63,7 +65,8 @@ Class.new = function(realTrack)
 				Type = "SetProperty",
 				ID = self.realTrack.Animation.AnimationId,
 				Property = index,
-				Value = value
+				Value = value,
+				AnimController = self.realCont
 			}
 			self.rEvent:FireServer(args)
 		end,
@@ -83,7 +86,8 @@ function Class:Play(fadeTime, weight, speed)
 			ID = self.realTrack.Animation.AnimationId,
 			Fadetime = fadeTime,
 			Weight = weight,
-			Speed = speed
+			Speed = speed,
+			AnimController = self.realCont
 	}
 	self.rEvent:FireServer(args)
 end
@@ -94,7 +98,8 @@ function Class:Stop(fadeTime)
 	local args = {
 			Type = "StopAnimation",
 			ID = self.realTrack.Animation.AnimationId,
-			FadeTime = fadeTime
+			FadeTime = fadeTime,
+			AnimController = self.realCont
 	}
 	self.rEvent:FireServer(args)
 end
@@ -104,7 +109,8 @@ function Class:AdjustSpeed(speed)
 	local args = {
 			Type = "AdjustSpeed",
 			ID = self.realTrack.Animation.AnimationId,
-			Value = speed or 1
+			Value = speed or 1,
+			AnimController = self.realCont
 	}
 	self.rEvent:FireServer(args)
 end
@@ -115,7 +121,8 @@ function Class:AdjustWeight(weight, FadeTime)
 			Type = "AdjustWeight",
 			ID = self.realTrack.Animation.AnimationId,
 			Weight = weight or 1,
-			fadeTime = FadeTime or 0.100000001
+			fadeTime = FadeTime or 0.100000001,
+			AnimController = self.realCont
 	}
 	self.rEvent:FireServer(args)
 end

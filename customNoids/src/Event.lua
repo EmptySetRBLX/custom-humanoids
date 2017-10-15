@@ -25,6 +25,7 @@ Class.new = function()
 	-- @type event
 	local self = setmetatable({}, Class)
 	self.Connections = {}
+	self.ConnectionClass = (self.Classes and self.Classes["Connection"]) or require(script:WaitForChild("Connection"))
 	return self
 end
 
@@ -35,7 +36,7 @@ end
 -- @return Connection#connection
 function Class:connect(func)
 	local ind = #self.Connections+1
-	local connection = self.Classes["Connection"](self, ind, func)
+	local connection = self.ConnectionClass(self, ind, func)
 	self.Connections[ind] = connection
 	return connection
 end

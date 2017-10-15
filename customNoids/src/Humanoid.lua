@@ -302,7 +302,7 @@ end
 
 function Class:LoadAnimation(anim)
 	local animTrack = self.AnimationCont:LoadAnimation(anim)
-	return self.Classes.AnimationTrack.new(animTrack)
+	return self.Classes.AnimationTrack.new(self.AnimationCont, animTrack)
 end
 
 function Class:InitProperties()
