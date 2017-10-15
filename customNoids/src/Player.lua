@@ -1,5 +1,17 @@
-local Class = {}
+---
+-- Custom player wrapper
+-- Custom player wrapper used to trick stock animation/camera/movement scripts in to working with custom humanoid
+-- @module PlayerWrapper
 
+--- A player wrapper
+-- @type playerWrapper
+-- @field RealPlayer Real player object
+-- @field PlayerService#playerService PlayerService Emulated player service
+-- @field #RemoteEvent SpawningEvent To server {Type = "Spawn"} from server {Type = "Spawn", Char = Instance}, {Type = "Despawn"}
+-- @field Event#event CharacterAdded fired when character added
+-- @field Event#event CharacterRemoving fired when character removing
+-- @field Character#character Character Character wrapper
+local Class = {}
 Class.__index = Class
 
 setmetatable(Class, {
@@ -8,6 +20,10 @@ setmetatable(Class, {
 	end,
 })
 
+--- Create a new wrapper
+-- @function [parent=#PlayerWrapper] new
+-- @param PlayerService#playerService playerService Emulated player service
+-- @return #playerWrapper the created playerWrapper
 Class.new = function(playerService)
 	local self = {}
 	self.RealPlayer = playerService.RealPlayer
@@ -16,7 +32,14 @@ Class.new = function(playerService)
 			if Class[index] then
 				return Class[index]
 			end
-			return self.RealPlayer[index]
+			local __, realResult = pcall(function() return self.RealPlayer[index] end)
+			if type(realResult) ~= "function" then
+				return realResult
+			else
+				return function(self, ...)
+					return self.RealPlayer[index](self.RealPlayer, ...)
+				end
+			end
 		end
 	})
 	self.PlayerService = playerService
@@ -24,15 +47,11 @@ Class.new = function(playerService)
 	return self
 end
 
-function Class:IsA(type)
-	print("TRYING TO FIND PLAYER TYPE " .. type)
-	return true
-end
-
-function Class:GetMouse()
-	return self.RealPlayer:GetMouse()
-end
-
+--- Tells the players humanoid to move in a direction
+-- @function [parent=#playerWrapper] Move
+-- @param #playerWrapper self
+-- @param #Vector3 walkDir Direction to walk in
+-- @param #boolean relToCamera Is the movement relative to the players camera?
 function Class:Move(walkDir, relToCamera)
 	if walkDir.X == 0 and walkDir.Z == 0 then
 		self.Character.Humanoid:SetMove(Vector3.new(0))
@@ -53,18 +72,9 @@ function Class:Move(walkDir, relToCamera)
 	end
 end
 
-function Class:GetChildren()
-	return self.RealPlayer:GetChildren()
-end
-
-function Class:WaitForChild(child)
-	return self.RealPlayer:WaitForChild(child)
-end
-
-function Class:FindFirstChild(child)
-	return self.RealPlayer:FindFirstChild(child)
-end
-
+--- Internal function, sets up remoteEvent and CharacterAdded/Removing events
+-- @function [parent=#playerWrapper] Fire
+-- @param #playerWrapper self
 function Class:SetupEvents()
 	self.SpawningEvent = game.ReplicatedStorage:WaitForChild("Spawning")
 	self.CharacterAdded = self.Classes["Event"].new()
