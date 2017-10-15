@@ -49,5 +49,8 @@ Temporary Items
 # StudioSinc
 *.js
 *.bat
+Code/node_modules
 node_modules
+
+#eclipse
 .metadata
