@@ -45,7 +45,7 @@ Class.new = function(realCont, realTrack)
 				return Class[index]
 			else
 				local __, realTrackResult = pcall(function() return self.realTrack[index] end)
-				if realTrackResult and type(realTrackResult) ~= "function" then
+				if realTrackResult ~= nil and type(realTrackResult) ~= "function" then
 					return realTrackResult
 				else
 					local a = function(self, ...)
@@ -76,7 +76,7 @@ Class.new = function(realCont, realTrack)
 end
 
 function Class:Play(fadeTime, weight, speed)
-	fadeTime = fadeTime or 100000001
+	fadeTime = fadeTime or .100000001
 	weight = weight or 1
 	speed = speed or 1
 	self.realTrack:Play(fadeTime, weight, speed)
