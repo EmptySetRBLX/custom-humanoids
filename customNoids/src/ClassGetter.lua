@@ -3,9 +3,15 @@
 	
 	Returns a table with all classes, initializes services
 --]]
-if _G.Classes then
-	return _G.Classes
+
+if _G.Structures == nil then
+	_G.Structures = {}
 end
+
+if _G.Structures[script.Parent.Name] then
+	return _G.Structures[script.Parent.Name]
+end
+
 local ClassGetter = {}
 
 local libraries = require(script.Parent.Libraries)
@@ -74,5 +80,6 @@ for k,v in pairs(ClassGetter["Services"]) do
 		ClassGetter["Services"][k]:PostLoad()
 	end
 end
-_G.Classes = ClassGetter
+_G.Structures[script.Parent.Name] = ClassGetter
+
 return ClassGetter

@@ -1,4 +1,4 @@
-local event = require(game.ReplicatedStorage:WaitForChild("Classes"):WaitForChild("ClassGetter"):WaitForChild("Event"))
+local event = require(game.ReplicatedStorage:WaitForChild("CustomNoid"):WaitForChild("ClassGetter"):WaitForChild("Event"))
 local serverAnimationController = require(script:WaitForChild("ServerAnimationController"))
 local rEvent = game.ReplicatedStorage:WaitForChild("AnimationReplicator")
 
